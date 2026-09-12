@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cloud Security Dashboard</title>
+
+    <!-- Dashboard CSS -->
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='dashboard.css') }}">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+      href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- ================= SIDEBAR ================= -->
+
+    <aside class="sidebar">
+
+        <!-- Logo -->
+
+        <div class="logo">
+
+            <i class="fa-solid fa-shield-halved"></i>
+
+            <h2>CloudSec</h2>
+
+        </div>
+
+
+        <!-- Navigation -->
+
+        <ul>
+
+            <!-- Dashboard -->
+
+            <li class="active">
+
+                <a href="{{ url_for('dashboard') }}" class="menu-link">
+
+                    <i class="fa-solid fa-house"></i>
+
+                    <span>Dashboard</span>
+
+                </a>
+
+            </li>
+
+
+            <!-- AWS Scan -->
+
+            <li>
+
+                <a href="{{ url_for('scan') }}" class="menu-link">
+
+                    <i class="fa-solid fa-cloud"></i>
+
+                    <span>AWS Scan</span>
+
+                </a>
+
+            </li>
+
+
+            <!-- Reports -->
+
+            <li>
+
+                <a href="{{ url_for('reports') }}" class="menu-link">
+
+                    <i class="fa-solid fa-chart-column"></i>
+
+                    <span>Reports</span>
+
+                </a>
+
+            </li>
+
+
+            <!-- IAM -->
+
+            <li>
+
+                <a href="{{ url_for('iam') }}" class="menu-link">
+
+                    <i class="fa-solid fa-user-shield"></i>
+
+                    <span>IAM</span>
+
+                </a>
+
+            </li>
+
+
+            <!-- EC2 -->
+
+            <li>
+
+                <a href="{{ url_for('ec2') }}" class="menu-link">
+
+                    <i class="fa-solid fa-server"></i>
+
+                    <span>EC2</span>
+
+                </a>
+
+            </li>
+
+
+            <!-- S3 -->
+
+            <li>
+
+                <a href="{{ url_for('s3') }}" class="menu-link">
+
+                    <i class="fa-solid fa-database"></i>
+
+                    <span>S3</span>
+
+                </a>
+
+            </li>
+
+
+            <!-- VPC -->
+
+            <li>
+
+                <a href="{{ url_for('vpc') }}" class="menu-link">
+
+                    <i class="fa-solid fa-network-wired"></i>
+
+                    <span>VPC</span>
+
+                </a>
+
+            </li>
+
+
+            <!-- Settings -->
+
+            <li>
+
+                <a href="{{ url_for('settings') }}" class="menu-link">
+
+                    <i class="fa-solid fa-gear"></i>
+
+                    <span>Settings</span>
+
+                </a>
+
+            </li>
+
+
+            <!-- Logout -->
+
+            <li>
+
+                <a href="{{ url_for('logout') }}" class="menu-link">
+
+                    <i class="fa-solid fa-right-from-bracket"></i>
+
+                    <span>Logout</span>
+
+                </a>
+
+            </li>
+
+        </ul>
+
+    </aside>
+
+
+    <!-- ================= MAIN CONTENT ================= -->
+
+    <main class="main-content">
+
+
+        <!-- ================= NAVBAR ================= -->
+
+        <header class="navbar">
+
+            <div>
+
+                <h1>
+                    Cloud Security Monitoring Dashboard
+                </h1>
+
+                <p>
+                    Monitor AWS Security in Real Time
+                </p>
+
+            </div>
+
+
+            <div class="profile">
+
+                <i class="fa-solid fa-bell"></i>
+
+                <i class="fa-solid fa-user-circle"></i>
+
+            </div>
+
+        </header>
+
+
+        <!-- ================= SECURITY CARDS ================= -->
+
+        <section class="cards">
+
+
+            <!-- Security Score -->
+
+            <div class="card score">
+
+                <h3>
+                    Security Score
+                </h3>
+
+                <h1>
+                    92%
+                </h1>
+
+                <p>
+                    Excellent Security
+                </p>
+
+            </div>
+
+
+            <!-- IAM -->
+
+            <div class="card iam">
+
+                <h3>
+                    IAM
+                </h3>
+
+                <h2>
+                    Secure
+                </h2>
+
+                <span class="green">
+                    ● Healthy
+                </span>
+
+            </div>
+
+
+            <!-- EC2 -->
+
+            <div class="card ec2">
+
+                <h3>
+                    EC2
+                </h3>
+
+                <h2>
+                    2 Issues
+                </h2>
+
+                <span class="yellow">
+                    ● Warning
+                </span>
+
+            </div>
+
+
+            <!-- S3 -->
+
+            <div class="card s3">
+
+                <h3>
+                    S3
+                </h3>
+
+                <h2>
+                    Critical
+                </h2>
+
+                <span class="red">
+                    ● Public Bucket
+                </span>
+
+            </div>
+
+
+            <!-- VPC -->
+
+            <div class="card vpc">
+
+                <h3>
+                    VPC
+                </h3>
+
+                <h2>
+                    Secure
+                </h2>
+
+                <span class="green">
+                    ● Healthy
+                </span>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= RECENT FINDINGS ================= -->
+
+        <section class="table-section">
+
+            <h2>
+                Recent Findings
+            </h2>
+
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Severity
+                        </th>
+
+                        <th>
+                            Service
+                        </th>
+
+                        <th>
+                            Description
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                    <!-- Critical Finding -->
+
+                    <tr>
+
+                        <td class="critical">
+                            Critical
+                        </td>
+
+                        <td>
+                            S3
+                        </td>
+
+                        <td>
+                            Bucket Public
+                        </td>
+
+                        <td>
+                            Open
+                        </td>
+
+                    </tr>
+
+
+                    <!-- High Finding -->
+
+                    <tr>
+
+                        <td class="high">
+                            High
+                        </td>
+
+                        <td>
+                            EC2
+                        </td>
+
+                        <td>
+                            SSH Port 22 Open
+                        </td>
+
+                        <td>
+                            Open
+                        </td>
+
+                    </tr>
+
+
+                    <!-- Medium Finding -->
+
+                    <tr>
+
+                        <td class="medium">
+                            Medium
+                        </td>
+
+                        <td>
+                            IAM
+                        </td>
+
+                        <td>
+                            MFA Disabled
+                        </td>
+
+                        <td>
+                            Pending
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </section>
+
+
+        <!-- Scan Button -->
+
+<div class="scan">
+
+    <a href="{{ url_for('scan') }}">
+
+        <button type="button">
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+            Scan AWS Infrastructure
+
+        </button>
+
+    </a>
+
+</div>
+
+
+    </main>
+
+</div>
+
+</body>
+
+</html>
