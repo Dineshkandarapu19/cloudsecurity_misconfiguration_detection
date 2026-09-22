@@ -1,17 +1,41 @@
 from flask import Flask, render_template,  redirect, url_for
+from aws.iam_scanner import scan_iam
 app = Flask(__name__)
 
 @app.route('/')
 def dashboard():
-    return render_template('dashboard.html')
 
+    findings = scan_iam()
+
+    iam_findings = [
+        finding for finding in findings
+        if finding["service"] == "IAM"
+    ]
+
+    if len(iam_findings) == 0:
+        security_score = 100
+    else:
+        security_score = max(0, 100 - (len(iam_findings) * 10))
+
+    return render_template(
+        'dashboard.html',
+        findings=findings,
+        iam_findings=iam_findings,
+        security_score=security_score
+    )
+    
 @app.route('/login')
 def login():
     return render_template('login.html')
 
 @app.route('/scan')
 def scan():
-    return render_template('scan.html') 
+    findings = scan_iam()
+
+    return render_template(
+        'scan.html',
+        findings=findings
+    )
 
 @app.route('/reports')
 def reports():

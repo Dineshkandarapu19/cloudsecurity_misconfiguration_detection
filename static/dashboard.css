@@ -293,12 +293,14 @@ body {
 
 /* ================= CARDS ================= */
 
+/* ================= CARDS ================= */
+
 .cards {
 
     display: grid;
 
     grid-template-columns:
-        repeat(5, minmax(170px, 1fr));
+        repeat(auto-fit, minmax(190px, 1fr));
 
     gap: 18px;
 
@@ -375,43 +377,6 @@ body {
 .card p {
 
     color: #e2e8f0;
-
-}
-
-
-/* ================= SERVICE COLORS ================= */
-
-.card.score {
-
-    border-top: 3px solid #3b82f6;
-
-}
-
-
-.card.iam {
-
-    border-top: 3px solid #22c55e;
-
-}
-
-
-.card.ec2 {
-
-    border-top: 3px solid #facc15;
-
-}
-
-
-.card.s3 {
-
-    border-top: 3px solid #ef4444;
-
-}
-
-
-.card.vpc {
-
-    border-top: 3px solid #38bdf8;
 
 }
 
@@ -633,7 +598,7 @@ tbody tr:hover {
     .cards {
 
         grid-template-columns:
-            repeat(2, 1fr);
+            repeat(2, minmax(0, 1fr));
 
     }
 

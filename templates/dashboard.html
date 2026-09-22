@@ -13,7 +13,8 @@
 
     <!-- Font Awesome -->
     <link rel="stylesheet"
-      href="{{ url_for('static', filename='css/dashboard.css') }}">
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
 </head>
 
 <body>
@@ -213,221 +214,224 @@
 
         <!-- ================= SECURITY CARDS ================= -->
 
-        <section class="cards">
+        <!-- ================= SECURITY CARDS ================= -->
+
+<section class="cards">
 
 
-            <!-- Security Score -->
+    <!-- ================= SECURITY SCORE ================= -->
 
-            <div class="card score">
+    <div class="card score">
 
-                <h3>
-                    Security Score
-                </h3>
+        <h3>
+            Security Score
+        </h3>
 
-                <h1>
-                    92%
-                </h1>
+        <h1>
+            {{ security_score }}%
+        </h1>
 
-                <p>
-                    Excellent Security
-                </p>
+        <p>
+            Security Score
+        </p>
 
-            </div>
-
-
-            <!-- IAM -->
-
-            <div class="card iam">
-
-                <h3>
-                    IAM
-                </h3>
-
-                <h2>
-                    Secure
-                </h2>
-
-                <span class="green">
-                    ● Healthy
-                </span>
-
-            </div>
+    </div>
 
 
-            <!-- EC2 -->
+    <!-- ================= IAM ================= -->
 
-            <div class="card ec2">
+    <div class="card iam">
 
-                <h3>
-                    EC2
-                </h3>
+        <h3>
+            IAM
+        </h3>
 
-                <h2>
-                    2 Issues
-                </h2>
-
-                <span class="yellow">
-                    ● Warning
-                </span>
-
-            </div>
-
-
-            <!-- S3 -->
-
-            <div class="card s3">
-
-                <h3>
-                    S3
-                </h3>
-
-                <h2>
-                    Critical
-                </h2>
-
-                <span class="red">
-                    ● Public Bucket
-                </span>
-
-            </div>
-
-
-            <!-- VPC -->
-
-            <div class="card vpc">
-
-                <h3>
-                    VPC
-                </h3>
-
-                <h2>
-                    Secure
-                </h2>
-
-                <span class="green">
-                    ● Healthy
-                </span>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================= RECENT FINDINGS ================= -->
-
-        <section class="table-section">
+        {% if iam_findings %}
 
             <h2>
-                Recent Findings
+                {{ iam_findings|length }} Issues
             </h2>
 
+            <span class="yellow">
+                ● Warning
+            </span>
 
-            <table>
+        {% else %}
 
-                <thead>
+            <h2>
+                Secure
+            </h2>
 
-                    <tr>
+            <span class="green">
+                ● Healthy
+            </span>
 
-                        <th>
-                            Severity
-                        </th>
+        {% endif %}
 
-                        <th>
-                            Service
-                        </th>
-
-                        <th>
-                            Description
-                        </th>
-
-                        <th>
-                            Status
-                        </th>
-
-                    </tr>
-
-                </thead>
+    </div>
 
 
-                <tbody>
+    <!-- ================= EC2 ================= -->
+
+    <div class="card ec2">
+
+        <h3>
+            EC2
+        </h3>
+
+        <h2>
+            2 Issues
+        </h2>
+
+        <span class="yellow">
+            ● Warning
+        </span>
+
+    </div>
 
 
-                    <!-- Critical Finding -->
+    <!-- ================= S3 ================= -->
 
-                    <tr>
+    <div class="card s3">
 
-                        <td class="critical">
-                            Critical
-                        </td>
+        <h3>
+            S3
+        </h3>
 
-                        <td>
-                            S3
-                        </td>
+        <h2>
+            Critical
+        </h2>
 
-                        <td>
-                            Bucket Public
-                        </td>
+        <span class="red">
+            ● Public Bucket
+        </span>
 
-                        <td>
-                            Open
-                        </td>
-
-                    </tr>
+    </div>
 
 
-                    <!-- High Finding -->
+    <!-- ================= VPC ================= -->
 
-                    <tr>
+    <div class="card vpc">
 
-                        <td class="high">
-                            High
-                        </td>
+        <h3>
+            VPC
+        </h3>
 
-                        <td>
-                            EC2
-                        </td>
+        <h2>
+            Secure
+        </h2>
 
-                        <td>
-                            SSH Port 22 Open
-                        </td>
+        <span class="green">
+            ● Healthy
+        </span>
 
-                        <td>
-                            Open
-                        </td>
-
-                    </tr>
+    </div>
 
 
-                    <!-- Medium Finding -->
-
-                    <tr>
-
-                        <td class="medium">
-                            Medium
-                        </td>
-
-                        <td>
-                            IAM
-                        </td>
-
-                        <td>
-                            MFA Disabled
-                        </td>
-
-                        <td>
-                            Pending
-                        </td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
-
-        </section>
+</section>
 
 
-        <!-- Scan Button -->
+<!-- ================= RECENT FINDINGS ================= -->
+
+<section class="table-section">
+
+    <h2>
+        Recent Findings
+    </h2>
+
+
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>
+                    Severity
+                </th>
+
+                <th>
+                    Service
+                </th>
+
+                <th>
+                    Description
+                </th>
+
+                <th>
+                    Status
+                </th>
+
+            </tr>
+
+        </thead>
+
+
+        <tbody>
+
+            {% if findings %}
+
+                {% for finding in findings %}
+
+                <tr>
+
+                    <td class="{{ finding.severity|lower }}">
+
+                        {{ finding.severity }}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ finding.service }}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ finding.issue }}
+
+                        <br>
+
+                        <small>
+                            User: {{ finding.user }}
+                        </small>
+
+                    </td>
+
+
+                    <td>
+                        Open
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            {% else %}
+
+                <tr>
+
+                    <td colspan="4">
+
+                        ✅ No security findings detected
+
+                    </td>
+
+                </tr>
+
+            {% endif %}
+
+        </tbody>
+
+    </table>
+
+</section>
+
+
+<!-- ================= SCAN BUTTON ================= -->
 
 <div class="scan">
 
@@ -446,6 +450,7 @@
 </div>
 
 
+        
     </main>
 
 </div>
