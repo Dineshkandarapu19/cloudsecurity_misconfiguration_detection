@@ -14,6 +14,8 @@ class TestEC2Scanner(unittest.TestCase):
         volume_encrypted=True,
         public_ip=None,
         ipv6_addresses=None,
+        egress_rules=None,
+        security_group_name="test-group",
     ):
         with patch("aws.ec2_scanner.boto3.client") as mock_client:
             mock_ec2 = mock_client.return_value
@@ -51,13 +53,13 @@ class TestEC2Scanner(unittest.TestCase):
                 }
             ]
 
-            permissions = [rule] if rule else []
-
             mock_ec2.describe_security_groups.return_value = {
                 "SecurityGroups": [
                     {
                         "GroupId": "sg-test123",
-                        "IpPermissions": permissions,
+                        "GroupName": security_group_name,
+                        "IpPermissions": [rule] if rule else [],
+                        "IpPermissionsEgress": egress_rules or [],
                     }
                 ]
             }
@@ -75,8 +77,7 @@ class TestEC2Scanner(unittest.TestCase):
 
     def assert_finding(self, findings, expected_issue):
         matches = [
-            finding
-            for finding in findings
+            finding for finding in findings
             if finding["issue"] == expected_issue
         ]
 
@@ -89,6 +90,12 @@ class TestEC2Scanner(unittest.TestCase):
         if "public IPv" in expected_issue:
             self.assertEqual(finding["severity"], "LOW")
             self.assertEqual(finding["security_group_id"], "N/A")
+        elif "outbound traffic" in expected_issue:
+            self.assertEqual(finding["severity"], "LOW")
+            self.assertEqual(finding["security_group_id"], "sg-test123")
+        elif expected_issue.startswith("Default security group"):
+            self.assertEqual(finding["severity"], "MEDIUM")
+            self.assertEqual(finding["security_group_id"], "sg-test123")
         elif (
             "IMDSv2" in expected_issue
             or expected_issue.startswith("EBS volume")
@@ -97,12 +104,9 @@ class TestEC2Scanner(unittest.TestCase):
             self.assertEqual(finding["security_group_id"], "N/A")
         else:
             self.assertEqual(finding["severity"], "HIGH")
-            self.assertEqual(
-                finding["security_group_id"],
-                "sg-test123",
-            )
+            self.assertEqual(finding["security_group_id"], "sg-test123")
 
-    # SSH tests
+    # SSH
 
     def test_public_ssh_ipv4(self):
         rule = {
@@ -136,7 +140,7 @@ class TestEC2Scanner(unittest.TestCase):
             any("SSH is open to the internet" in f["issue"] for f in findings)
         )
 
-    # RDP tests
+    # RDP
 
     def test_public_rdp_ipv4(self):
         rule = {
@@ -158,7 +162,7 @@ class TestEC2Scanner(unittest.TestCase):
         findings = self.run_scanner_with_rule(rule)
         self.assert_finding(findings, "RDP is open to the internet")
 
-    # Database tests
+    # Databases
 
     def test_public_mysql_ipv4(self):
         rule = {
@@ -192,7 +196,7 @@ class TestEC2Scanner(unittest.TestCase):
             any("MySQL is open to the internet" in f["issue"] for f in findings)
         )
 
-    # UDP tests
+    # UDP
 
     def test_public_dns_udp_ipv4(self):
         rule = {
@@ -230,7 +234,7 @@ class TestEC2Scanner(unittest.TestCase):
             "is open to the internet",
         )
 
-    # IMDSv2 tests
+    # IMDSv2
 
     def test_imdsv2_required_no_finding(self):
         findings = self.run_scanner_with_rule(http_tokens="required")
@@ -250,14 +254,11 @@ class TestEC2Scanner(unittest.TestCase):
             "EC2 instance does not require IMDSv2",
         )
 
-    # EBS encryption tests
+    # EBS encryption
 
     def test_unencrypted_ebs_volume_finding(self):
         mappings = [
-            {
-                "DeviceName": "/dev/xvda",
-                "Ebs": {"VolumeId": "vol-test123"},
-            }
+            {"DeviceName": "/dev/xvda", "Ebs": {"VolumeId": "vol-test123"}}
         ]
         findings = self.run_scanner_with_rule(
             block_device_mappings=mappings,
@@ -270,10 +271,7 @@ class TestEC2Scanner(unittest.TestCase):
 
     def test_encrypted_ebs_volume_no_finding(self):
         mappings = [
-            {
-                "DeviceName": "/dev/xvda",
-                "Ebs": {"VolumeId": "vol-test123"},
-            }
+            {"DeviceName": "/dev/xvda", "Ebs": {"VolumeId": "vol-test123"}}
         ]
         findings = self.run_scanner_with_rule(
             block_device_mappings=mappings,
@@ -283,7 +281,7 @@ class TestEC2Scanner(unittest.TestCase):
             any("is not encrypted" in f["issue"] for f in findings)
         )
 
-    # Public IP exposure tests
+    # Public IP exposure
 
     def test_public_ipv4_address_finding(self):
         findings = self.run_scanner_with_rule(public_ip="203.0.113.10")
@@ -305,6 +303,74 @@ class TestEC2Scanner(unittest.TestCase):
         self.assert_finding(
             findings,
             "EC2 instance has a public IPv6 address",
+        )
+
+    # Unrestricted outbound traffic
+
+    def test_unrestricted_ipv4_egress(self):
+        egress = [
+            {
+                "IpProtocol": "-1",
+                "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
+            }
+        ]
+        findings = self.run_scanner_with_rule(egress_rules=egress)
+        self.assert_finding(
+            findings,
+            "Security group allows all outbound traffic to the internet",
+        )
+
+    def test_unrestricted_ipv6_egress(self):
+        egress = [
+            {
+                "IpProtocol": "-1",
+                "Ipv6Ranges": [{"CidrIpv6": "::/0"}],
+            }
+        ]
+        findings = self.run_scanner_with_rule(egress_rules=egress)
+        self.assert_finding(
+            findings,
+            "Security group allows all outbound traffic to the internet",
+        )
+
+    def test_restricted_egress_no_finding(self):
+        egress = [
+            {
+                "IpProtocol": "tcp",
+                "FromPort": 443,
+                "ToPort": 443,
+                "IpRanges": [{"CidrIp": "10.0.0.0/16"}],
+            }
+        ]
+        findings = self.run_scanner_with_rule(egress_rules=egress)
+        self.assertFalse(
+            any("outbound traffic" in f["issue"] for f in findings)
+        )
+
+    # Default security group
+
+    def test_default_security_group_with_inbound_rules(self):
+        rule = {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "IpRanges": [{"CidrIp": "10.0.0.0/16"}],
+        }
+        findings = self.run_scanner_with_rule(
+            rule=rule,
+            security_group_name="default",
+        )
+        self.assert_finding(
+            findings,
+            "Default security group has inbound rules",
+        )
+
+    def test_default_security_group_without_inbound_rules(self):
+        findings = self.run_scanner_with_rule(
+            security_group_name="default",
+        )
+        self.assertFalse(
+            any("Default security group" in f["issue"] for f in findings)
         )
 
 

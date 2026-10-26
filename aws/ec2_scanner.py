@@ -19,19 +19,24 @@ MONITORED_UDP_PORTS = {
 
 
 def scan_ec2():
-    """Detect EC2 network exposure and configuration issues."""
+    """Scan EC2 instances for selected security misconfigurations."""
 
     ec2 = boto3.client("ec2")
     findings = []
     seen_findings = set()
 
-    def add_finding(instance_id, group_id, issue, severity="HIGH"):
-        finding_key = (instance_id, group_id, issue)
+    def add_finding(
+        instance_id,
+        group_id,
+        issue,
+        severity="HIGH",
+    ):
+        key = (instance_id, group_id, issue)
 
-        if finding_key in seen_findings:
+        if key in seen_findings:
             return
 
-        seen_findings.add(finding_key)
+        seen_findings.add(key)
 
         findings.append({
             "service": "EC2",
@@ -48,28 +53,30 @@ def scan_ec2():
             for instance in reservation.get("Instances", []):
                 instance_id = instance.get("InstanceId", "Unknown")
 
-                # 1. Review public IPv4 exposure.
+                # 1. Public IP exposure review.
                 if instance.get("PublicIpAddress"):
                     add_finding(
                         instance_id,
                         "N/A",
                         "EC2 instance has a public IPv4 address",
-                        severity="LOW",
+                        "LOW",
                     )
 
-                # 2. Review public IPv6 exposure.
                 for interface in instance.get("NetworkInterfaces", []):
-                    for ipv6 in interface.get("Ipv6Addresses", []):
-                        if ipv6.get("Ipv6Address"):
-                            add_finding(
-                                instance_id,
-                                "N/A",
-                                "EC2 instance has a public IPv6 address",
-                                severity="LOW",
-                            )
-                            break
+                    has_ipv6 = any(
+                        item.get("Ipv6Address")
+                        for item in interface.get("Ipv6Addresses", [])
+                    )
 
-                # 3. Require IMDSv2.
+                    if has_ipv6:
+                        add_finding(
+                            instance_id,
+                            "N/A",
+                            "EC2 instance has a public IPv6 address",
+                            "LOW",
+                        )
+
+                # 2. IMDSv2 enforcement.
                 metadata_options = instance.get("MetadataOptions", {})
 
                 if metadata_options.get("HttpTokens") != "required":
@@ -79,13 +86,9 @@ def scan_ec2():
                         "EC2 instance does not require IMDSv2",
                     )
 
-                # 4. Check attached EBS volume encryption.
-                for block_device in instance.get("BlockDeviceMappings", []):
-                    ebs = block_device.get("Ebs")
-
-                    if not ebs:
-                        continue
-
+                # 3. EBS encryption.
+                for mapping in instance.get("BlockDeviceMappings", []):
+                    ebs = mapping.get("Ebs", {})
                     volume_id = ebs.get("VolumeId")
 
                     if not volume_id:
@@ -103,9 +106,9 @@ def scan_ec2():
                                 f"EBS volume {volume_id} is not encrypted",
                             )
 
-                # 5. Review inbound security group rules.
-                for security_group in instance.get("SecurityGroups", []):
-                    group_id = security_group.get("GroupId")
+                # 4. Attached security group rules.
+                for attached_group in instance.get("SecurityGroups", []):
+                    group_id = attached_group.get("GroupId")
 
                     if not group_id:
                         continue
@@ -115,7 +118,21 @@ def scan_ec2():
                     )
 
                     for group in response.get("SecurityGroups", []):
-                        for permission in group.get("IpPermissions", []):
+                        ingress_rules = group.get("IpPermissions", [])
+                        egress_rules = group.get("IpPermissionsEgress", [])
+                        group_name = group.get("GroupName", "")
+
+                        # 5. Default security group inbound review.
+                        if group_name == "default" and ingress_rules:
+                            add_finding(
+                                instance_id,
+                                group_id,
+                                "Default security group has inbound rules",
+                                "MEDIUM",
+                            )
+
+                        # 6. Inspect inbound access.
+                        for permission in ingress_rules:
                             public_ipv4 = any(
                                 item.get("CidrIp") == "0.0.0.0/0"
                                 for item in permission.get("IpRanges", [])
@@ -143,10 +160,10 @@ def scan_ec2():
                             if protocol not in ("tcp", "udp"):
                                 continue
 
-                            from_port = permission.get("FromPort")
-                            to_port = permission.get("ToPort")
+                            start = permission.get("FromPort")
+                            end = permission.get("ToPort")
 
-                            if from_port is None or to_port is None:
+                            if start is None or end is None:
                                 continue
 
                             monitored_ports = (
@@ -155,27 +172,46 @@ def scan_ec2():
                                 else MONITORED_UDP_PORTS
                             )
 
-                            for port, service_name in monitored_ports.items():
-                                if from_port <= port <= to_port:
+                            for port, service in monitored_ports.items():
+                                if start <= port <= end:
                                     add_finding(
                                         instance_id,
                                         group_id,
-                                        f"{service_name} is open "
-                                        "to the internet",
+                                        f"{service} is open to the internet",
                                     )
 
-                            has_custom_port = any(
+                            if any(
                                 port not in monitored_ports
-                                for port in range(from_port, to_port + 1)
-                            )
-
-                            if has_custom_port:
+                                for port in range(start, end + 1)
+                            ):
                                 add_finding(
                                     instance_id,
                                     group_id,
                                     f"Unrestricted custom {protocol.upper()} "
-                                    f"port range {from_port}-{to_port} "
-                                    "is open to the internet",
+                                    f"port range {start}-{end} is open "
+                                    "to the internet",
+                                )
+
+                        # 7. Unrestricted outbound traffic review.
+                        for permission in egress_rules:
+                            if permission.get("IpProtocol") != "-1":
+                                continue
+
+                            public_egress = any(
+                                item.get("CidrIp") == "0.0.0.0/0"
+                                for item in permission.get("IpRanges", [])
+                            ) or any(
+                                item.get("CidrIpv6") == "::/0"
+                                for item in permission.get("Ipv6Ranges", [])
+                            )
+
+                            if public_egress:
+                                add_finding(
+                                    instance_id,
+                                    group_id,
+                                    "Security group allows all outbound "
+                                    "traffic to the internet",
+                                    "LOW",
                                 )
 
     return findings
@@ -186,7 +222,6 @@ if __name__ == "__main__":
 
     if results:
         print("EC2 Security Findings:")
-
         for finding in results:
             print(finding)
     else:
