@@ -1,361 +1,203 @@
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>AWS Infrastructure Scan</title>
 
-    <!-- CloudSec CSS -->
     <link rel="stylesheet"
           href="{{ url_for('static', filename='dashboard.css') }}">
 
-    <!-- Font Awesome -->
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-
 </head>
 
-
 <body>
-
 <div class="container">
 
-
-    <!-- ================= SIDEBAR ================= -->
-
+    <!-- SIDEBAR -->
     <aside class="sidebar">
-
         <div class="logo">
-
             <i class="fa-solid fa-shield-halved"></i>
-
             <h2>CloudSec</h2>
-
         </div>
-
 
         <ul>
-
             <li>
-
                 <a href="{{ url_for('dashboard') }}" class="menu-link">
-
                     <i class="fa-solid fa-house"></i>
-
                     <span>Dashboard</span>
-
                 </a>
-
             </li>
-
 
             <li class="active">
-
                 <a href="{{ url_for('scan') }}" class="menu-link">
-
                     <i class="fa-solid fa-cloud"></i>
-
                     <span>AWS Scan</span>
-
                 </a>
-
             </li>
 
-
             <li>
-
                 <a href="{{ url_for('reports') }}" class="menu-link">
-
                     <i class="fa-solid fa-chart-column"></i>
-
                     <span>Reports</span>
-
                 </a>
-
             </li>
 
-
             <li>
-
                 <a href="{{ url_for('iam') }}" class="menu-link">
-
                     <i class="fa-solid fa-user-shield"></i>
-
                     <span>IAM</span>
-
                 </a>
-
             </li>
 
-
             <li>
-
                 <a href="{{ url_for('ec2') }}" class="menu-link">
-
                     <i class="fa-solid fa-server"></i>
-
                     <span>EC2</span>
-
                 </a>
-
             </li>
 
-
             <li>
-
                 <a href="{{ url_for('s3') }}" class="menu-link">
-
                     <i class="fa-solid fa-database"></i>
-
                     <span>S3</span>
-
                 </a>
-
             </li>
 
-
             <li>
-
                 <a href="{{ url_for('vpc') }}" class="menu-link">
-
                     <i class="fa-solid fa-network-wired"></i>
-
                     <span>VPC</span>
-
                 </a>
-
             </li>
 
-
             <li>
-
                 <a href="{{ url_for('settings') }}" class="menu-link">
-
                     <i class="fa-solid fa-gear"></i>
-
                     <span>Settings</span>
-
                 </a>
-
             </li>
-
 
             <li>
-
                 <a href="{{ url_for('logout') }}" class="menu-link">
-
                     <i class="fa-solid fa-right-from-bracket"></i>
-
                     <span>Logout</span>
-
                 </a>
-
             </li>
-
         </ul>
-
     </aside>
 
-
-    <!-- ================= MAIN CONTENT ================= -->
-
+    <!-- MAIN CONTENT -->
     <main class="main-content">
 
-
-        <!-- ================= NAVBAR ================= -->
-
+        <!-- NAVBAR -->
         <header class="navbar">
-
             <div>
-
-                <h1>
-                    AWS Infrastructure Scan
-                </h1>
-
-                <p>
-                    Scan AWS resources for security misconfigurations
-                </p>
-
+                <h1>AWS Infrastructure Scan</h1>
+                <p>Scan AWS resources for security misconfigurations</p>
             </div>
-
 
             <div class="profile">
-
                 <i class="fa-solid fa-bell"></i>
-
                 <i class="fa-solid fa-user-circle"></i>
-
             </div>
-
         </header>
 
-
-        <!-- ================= SCAN STATUS ================= -->
-
+        <!-- SCAN STATUS -->
         <section class="table-section">
-
             <h2>
-
                 <i class="fa-solid fa-shield-halved"></i>
-
-                IAM Security Scan
-
+                AWS Security Scan
             </h2>
-
 
             <p>
-
-                AWS IAM security analysis completed.
-
+                IAM and EC2 security analysis completed.
             </p>
 
+            <p>
+                Total findings: <strong>{{ findings|length }}</strong>
+            </p>
         </section>
 
-
-        <!-- ================= FINDINGS ================= -->
-
+        <!-- FINDINGS -->
         <section class="table-section">
-
-            <h2>
-                Security Findings
-            </h2>
-
+            <h2>Security Findings</h2>
 
             {% if findings %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Service</th>
+                        <th>Resource</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
 
+                <tbody>
+                    {% for finding in findings %}
+                    <tr>
+                        <td class="{{ finding.get('severity', 'unknown')|lower }}">
+                            {{ finding.get('severity', 'UNKNOWN') }}
+                        </td>
 
-                <table>
+                        <td>{{ finding.get('service', 'N/A') }}</td>
 
-                    <thead>
+                        <td>
+                            {% if finding.get('service') == 'IAM' %}
+                                {{ finding.get('user', 'N/A') }}
+                            {% elif finding.get('service') == 'EC2' %}
+                                {{ finding.get('instance_id', 'N/A') }}
 
-                        <tr>
+                                {% if finding.get('security_group_id') %}
+                                    <br>
+                                    <small>
+                                        SG: {{ finding.get('security_group_id') }}
+                                    </small>
+                                {% endif %}
+                            {% else %}
+                                {{ finding.get('resource_id', 'N/A') }}
+                            {% endif %}
+                        </td>
 
-                            <th>
-                                Severity
-                            </th>
+                        <td>{{ finding.get('issue', 'No description available') }}</td>
 
-                            <th>
-                                Service
-                            </th>
-
-                            <th>
-                                User
-                            </th>
-
-                            <th>
-                                Description
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-
-                        {% for finding in findings %}
-
-                        <tr>
-
-
-                            <td class="{{ finding.severity|lower }}">
-
-                                {{ finding.severity }}
-
-                            </td>
-
-
-                            <td>
-
-                                {{ finding.service }}
-
-                            </td>
-
-
-                            <td>
-
-                                {{ finding.user }}
-
-                            </td>
-
-
-                            <td>
-
-                                {{ finding.issue }}
-
-                            </td>
-
-
-                            <td>
-
-                                Open
-
-                            </td>
-
-
-                        </tr>
-
-                        {% endfor %}
-
-
-                    </tbody>
-
-                </table>
-
+                        <td>Open</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
 
             {% else %}
+            <div>
+                <h3>
+                    <i class="fa-solid fa-circle-check"></i>
+                    No Security Findings
+                </h3>
 
-
-                <div>
-
-                    <h3>
-                        ✅ No Security Findings
-                    </h3>
-
-                    <p>
-                        No IAM security issues were detected.
-                    </p>
-
-                </div>
-
-
+                <p>
+                    No issues were detected by the currently enabled IAM
+                    and EC2 checks.
+                </p>
+            </div>
             {% endif %}
-
         </section>
 
-
-        <!-- ================= BACK BUTTON ================= -->
-
+        <!-- BACK BUTTON -->
         <div class="scan">
-
             <a href="{{ url_for('dashboard') }}">
-
                 <button type="button">
-
                     <i class="fa-solid fa-arrow-left"></i>
-
                     Back to Dashboard
-
                 </button>
-
             </a>
-
         </div>
 
-
     </main>
-
 </div>
-
 </body>
-
 </html>
