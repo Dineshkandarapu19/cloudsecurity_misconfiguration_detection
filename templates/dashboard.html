@@ -274,20 +274,16 @@
     <!-- ================= EC2 ================= -->
 
     <div class="card ec2">
+    <h3>EC2</h3>
 
-        <h3>
-            EC2
-        </h3>
-
-        <h2>
-            2 Issues
-        </h2>
-
-        <span class="yellow">
-            ● Warning
-        </span>
-
-    </div>
+    {% if ec2_findings %}
+        <h2>{{ ec2_findings|length }} Issues</h2>
+        <span class="red">● High Risk</span>
+    {% else %}
+        <h2>Secure</h2>
+        <span class="green">● Healthy</span>
+    {% endif %}
+   </div>
 
 
     <!-- ================= S3 ================= -->
@@ -396,7 +392,13 @@
                         <br>
 
                         <small>
-                            User: {{ finding.user }}
+                           {% if finding.instance_id %}
+                                Instance: {{ finding.instance_id }}
+                                <br>
+                                 Security Group: {{ finding.security_group_id }}
+                            {% elif finding.user %}
+                                 User: {{ finding.user }}
+                            {% endif %}
                         </small>
 
                     </td>
