@@ -12,13 +12,12 @@ class TestEC2Scanner(unittest.TestCase):
         http_tokens="required",
         block_device_mappings=None,
         volume_encrypted=True,
+        public_ip=None,
+        ipv6_addresses=None,
     ):
-        """Run the scanner with mocked AWS responses."""
-
         with patch("aws.ec2_scanner.boto3.client") as mock_client:
             mock_ec2 = mock_client.return_value
 
-            # Mock EC2 instance information.
             mock_ec2.get_paginator.return_value.paginate.return_value = [
                 {
                     "Reservations": [
@@ -34,6 +33,17 @@ class TestEC2Scanner(unittest.TestCase):
                                     },
                                     "BlockDeviceMappings":
                                         block_device_mappings or [],
+                                    "PublicIpAddress": public_ip,
+                                    "NetworkInterfaces": [
+                                        {
+                                            "Ipv6Addresses": [
+                                                {"Ipv6Address": address}
+                                                for address in (
+                                                    ipv6_addresses or []
+                                                )
+                                            ]
+                                        }
+                                    ],
                                 }
                             ]
                         }
@@ -41,7 +51,6 @@ class TestEC2Scanner(unittest.TestCase):
                 }
             ]
 
-            # Mock security group permissions.
             permissions = [rule] if rule else []
 
             mock_ec2.describe_security_groups.return_value = {
@@ -53,7 +62,6 @@ class TestEC2Scanner(unittest.TestCase):
                 ]
             }
 
-            # Mock EBS volume encryption status.
             mock_ec2.describe_volumes.return_value = {
                 "Volumes": [
                     {
@@ -66,8 +74,6 @@ class TestEC2Scanner(unittest.TestCase):
             return scan_ec2()
 
     def assert_finding(self, findings, expected_issue):
-        """Verify that the expected finding exists."""
-
         matches = [
             finding
             for finding in findings
@@ -75,30 +81,28 @@ class TestEC2Scanner(unittest.TestCase):
         ]
 
         self.assertEqual(len(matches), 1)
-
         finding = matches[0]
 
         self.assertEqual(finding["service"], "EC2")
         self.assertEqual(finding["instance_id"], "i-test123")
-        self.assertEqual(finding["severity"], "HIGH")
 
-        if (
+        if "public IPv" in expected_issue:
+            self.assertEqual(finding["severity"], "LOW")
+            self.assertEqual(finding["security_group_id"], "N/A")
+        elif (
             "IMDSv2" in expected_issue
             or expected_issue.startswith("EBS volume")
         ):
-            self.assertEqual(
-                finding["security_group_id"],
-                "N/A",
-            )
+            self.assertEqual(finding["severity"], "HIGH")
+            self.assertEqual(finding["security_group_id"], "N/A")
         else:
+            self.assertEqual(finding["severity"], "HIGH")
             self.assertEqual(
                 finding["security_group_id"],
                 "sg-test123",
             )
 
-    # --------------------------------------------------
-    # SSH TESTS
-    # --------------------------------------------------
+    # SSH tests
 
     def test_public_ssh_ipv4(self):
         rule = {
@@ -107,13 +111,8 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 22,
             "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
-        self.assert_finding(
-            findings,
-            "SSH is open to the internet",
-        )
+        self.assert_finding(findings, "SSH is open to the internet")
 
     def test_public_ssh_ipv6(self):
         rule = {
@@ -122,13 +121,8 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 22,
             "Ipv6Ranges": [{"CidrIpv6": "::/0"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
-        self.assert_finding(
-            findings,
-            "SSH is open to the internet",
-        )
+        self.assert_finding(findings, "SSH is open to the internet")
 
     def test_private_ssh_rule(self):
         rule = {
@@ -137,17 +131,12 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 22,
             "IpRanges": [{"CidrIp": "10.0.0.0/16"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
         self.assertFalse(
-            any("SSH is open to the internet" in f["issue"]
-                for f in findings)
+            any("SSH is open to the internet" in f["issue"] for f in findings)
         )
 
-    # --------------------------------------------------
-    # RDP TESTS
-    # --------------------------------------------------
+    # RDP tests
 
     def test_public_rdp_ipv4(self):
         rule = {
@@ -156,13 +145,8 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 3389,
             "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
-        self.assert_finding(
-            findings,
-            "RDP is open to the internet",
-        )
+        self.assert_finding(findings, "RDP is open to the internet")
 
     def test_public_rdp_ipv6(self):
         rule = {
@@ -171,17 +155,10 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 3389,
             "Ipv6Ranges": [{"CidrIpv6": "::/0"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
+        self.assert_finding(findings, "RDP is open to the internet")
 
-        self.assert_finding(
-            findings,
-            "RDP is open to the internet",
-        )
-
-    # --------------------------------------------------
-    # DATABASE PORT TESTS
-    # --------------------------------------------------
+    # Database tests
 
     def test_public_mysql_ipv4(self):
         rule = {
@@ -190,13 +167,8 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 3306,
             "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
-        self.assert_finding(
-            findings,
-            "MySQL is open to the internet",
-        )
+        self.assert_finding(findings, "MySQL is open to the internet")
 
     def test_public_postgresql_ipv6(self):
         rule = {
@@ -205,13 +177,8 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 5432,
             "Ipv6Ranges": [{"CidrIpv6": "::/0"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
-        self.assert_finding(
-            findings,
-            "PostgreSQL is open to the internet",
-        )
+        self.assert_finding(findings, "PostgreSQL is open to the internet")
 
     def test_private_mysql_rule(self):
         rule = {
@@ -220,17 +187,12 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 3306,
             "IpRanges": [{"CidrIp": "10.0.0.0/16"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
         self.assertFalse(
-            any("MySQL is open to the internet" in f["issue"]
-                for f in findings)
+            any("MySQL is open to the internet" in f["issue"] for f in findings)
         )
 
-    # --------------------------------------------------
-    # UDP TESTS
-    # --------------------------------------------------
+    # UDP tests
 
     def test_public_dns_udp_ipv4(self):
         rule = {
@@ -239,13 +201,8 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 53,
             "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
-        self.assert_finding(
-            findings,
-            "DNS is open to the internet",
-        )
+        self.assert_finding(findings, "DNS is open to the internet")
 
     def test_private_dns_udp_rule(self):
         rule = {
@@ -254,12 +211,9 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 53,
             "IpRanges": [{"CidrIp": "10.0.0.0/16"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
         self.assertFalse(
-            any("DNS is open to the internet" in f["issue"]
-                for f in findings)
+            any("DNS is open to the internet" in f["issue"] for f in findings)
         )
 
     def test_public_custom_udp_port(self):
@@ -269,90 +223,88 @@ class TestEC2Scanner(unittest.TestCase):
             "ToPort": 10000,
             "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
         }
-
         findings = self.run_scanner_with_rule(rule)
-
         self.assert_finding(
             findings,
-            "Unrestricted custom UDP port range "
-            "10000-10000 is open to the internet",
+            "Unrestricted custom UDP port range 10000-10000 "
+            "is open to the internet",
         )
 
-    # --------------------------------------------------
-    # IMDSv2 TESTS
-    # --------------------------------------------------
+    # IMDSv2 tests
 
     def test_imdsv2_required_no_finding(self):
-        findings = self.run_scanner_with_rule(
-            http_tokens="required"
-        )
-
-        self.assertFalse(
-            any("IMDSv2" in f["issue"] for f in findings)
-        )
+        findings = self.run_scanner_with_rule(http_tokens="required")
+        self.assertFalse(any("IMDSv2" in f["issue"] for f in findings))
 
     def test_imdsv2_optional_finding(self):
-        findings = self.run_scanner_with_rule(
-            http_tokens="optional"
-        )
-
+        findings = self.run_scanner_with_rule(http_tokens="optional")
         self.assert_finding(
             findings,
             "EC2 instance does not require IMDSv2",
         )
 
     def test_imdsv2_missing_metadata_options(self):
-        findings = self.run_scanner_with_rule(
-            http_tokens=None
-        )
-
+        findings = self.run_scanner_with_rule(http_tokens=None)
         self.assert_finding(
             findings,
             "EC2 instance does not require IMDSv2",
         )
 
-    # --------------------------------------------------
-    # EBS ENCRYPTION TESTS
-    # --------------------------------------------------
+    # EBS encryption tests
 
     def test_unencrypted_ebs_volume_finding(self):
-        block_device_mappings = [
+        mappings = [
             {
                 "DeviceName": "/dev/xvda",
-                "Ebs": {
-                    "VolumeId": "vol-test123",
-                },
+                "Ebs": {"VolumeId": "vol-test123"},
             }
         ]
-
         findings = self.run_scanner_with_rule(
-            block_device_mappings=block_device_mappings,
+            block_device_mappings=mappings,
             volume_encrypted=False,
         )
-
         self.assert_finding(
             findings,
             "EBS volume vol-test123 is not encrypted",
         )
 
     def test_encrypted_ebs_volume_no_finding(self):
-        block_device_mappings = [
+        mappings = [
             {
                 "DeviceName": "/dev/xvda",
-                "Ebs": {
-                    "VolumeId": "vol-test123",
-                },
+                "Ebs": {"VolumeId": "vol-test123"},
             }
         ]
-
         findings = self.run_scanner_with_rule(
-            block_device_mappings=block_device_mappings,
+            block_device_mappings=mappings,
             volume_encrypted=True,
         )
-
         self.assertFalse(
-            any("is not encrypted" in f["issue"]
-                for f in findings)
+            any("is not encrypted" in f["issue"] for f in findings)
+        )
+
+    # Public IP exposure tests
+
+    def test_public_ipv4_address_finding(self):
+        findings = self.run_scanner_with_rule(public_ip="203.0.113.10")
+        self.assert_finding(
+            findings,
+            "EC2 instance has a public IPv4 address",
+        )
+
+    def test_no_public_ipv4_address_no_finding(self):
+        findings = self.run_scanner_with_rule(public_ip=None)
+        self.assertFalse(
+            any("public IPv4 address" in f["issue"] for f in findings)
+        )
+
+    def test_public_ipv6_address_finding(self):
+        findings = self.run_scanner_with_rule(
+            ipv6_addresses=["2001:db8::10"]
+        )
+        self.assert_finding(
+            findings,
+            "EC2 instance has a public IPv6 address",
         )
 
 
