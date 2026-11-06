@@ -2,16 +2,22 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Cloud Security Dashboard</title>
+    <title>Cloud Security Dashboard | CloudSec</title>
 
-    <!-- Dashboard CSS -->
+    <!-- FAVICON -->
+    <link rel="icon"
+          type="image/png"
+          href="{{ url_for('static', filename='images/logo.png') }}">
+
+    <!-- DASHBOARD CSS -->
     <link rel="stylesheet"
           href="{{ url_for('static', filename='dashboard.css') }}">
 
-    <!-- Font Awesome -->
+    <!-- FONT AWESOME -->
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
@@ -21,157 +27,85 @@
 
 <div class="container">
 
-    <!-- ================= SIDEBAR ================= -->
+    <!-- ==================================================
+         SIDEBAR
+    ================================================== -->
 
     <aside class="sidebar">
 
-        <!-- Logo -->
-
         <div class="logo">
 
-            <i class="fa-solid fa-shield-halved"></i>
+            <img src="{{ url_for('static', filename='images/logo.png') }}"
+                 alt="CloudSec Logo"
+                 class="logo-img">
 
             <h2>CloudSec</h2>
 
         </div>
 
-
-        <!-- Navigation -->
-
         <ul>
 
-            <!-- Dashboard -->
-
             <li class="active">
-
                 <a href="{{ url_for('dashboard') }}" class="menu-link">
-
                     <i class="fa-solid fa-house"></i>
-
                     <span>Dashboard</span>
-
                 </a>
-
             </li>
 
-
-            <!-- AWS Scan -->
-
             <li>
-
                 <a href="{{ url_for('scan') }}" class="menu-link">
-
                     <i class="fa-solid fa-cloud"></i>
-
                     <span>AWS Scan</span>
-
                 </a>
-
             </li>
 
-
-            <!-- Reports -->
-
             <li>
-
                 <a href="{{ url_for('reports') }}" class="menu-link">
-
                     <i class="fa-solid fa-chart-column"></i>
-
                     <span>Reports</span>
-
                 </a>
-
             </li>
 
-
-            <!-- IAM -->
-
             <li>
-
                 <a href="{{ url_for('iam') }}" class="menu-link">
-
                     <i class="fa-solid fa-user-shield"></i>
-
                     <span>IAM</span>
-
                 </a>
-
             </li>
 
-
-            <!-- EC2 -->
-
             <li>
-
                 <a href="{{ url_for('ec2') }}" class="menu-link">
-
                     <i class="fa-solid fa-server"></i>
-
                     <span>EC2</span>
-
                 </a>
-
             </li>
 
-
-            <!-- S3 -->
-
             <li>
-
                 <a href="{{ url_for('s3') }}" class="menu-link">
-
                     <i class="fa-solid fa-database"></i>
-
                     <span>S3</span>
-
                 </a>
-
             </li>
 
-
-            <!-- VPC -->
-
             <li>
-
                 <a href="{{ url_for('vpc') }}" class="menu-link">
-
                     <i class="fa-solid fa-network-wired"></i>
-
                     <span>VPC</span>
-
                 </a>
-
             </li>
 
-
-            <!-- Settings -->
-
             <li>
-
                 <a href="{{ url_for('settings') }}" class="menu-link">
-
                     <i class="fa-solid fa-gear"></i>
-
                     <span>Settings</span>
-
                 </a>
-
             </li>
 
-
-            <!-- Logout -->
-
             <li>
-
                 <a href="{{ url_for('logout') }}" class="menu-link">
-
                     <i class="fa-solid fa-right-from-bracket"></i>
-
                     <span>Logout</span>
-
                 </a>
-
             </li>
 
         </ul>
@@ -179,27 +113,24 @@
     </aside>
 
 
-    <!-- ================= MAIN CONTENT ================= -->
+    <!-- ==================================================
+         MAIN CONTENT
+    ================================================== -->
 
     <main class="main-content">
 
 
-        <!-- ================= NAVBAR ================= -->
+        <!-- NAVBAR -->
 
         <header class="navbar">
 
             <div>
 
-                <h1>
-                    Cloud Security Monitoring Dashboard
-                </h1>
+                <h1>Cloud Security Monitoring Dashboard</h1>
 
-                <p>
-                    Monitor AWS Security in Real Time
-                </p>
+                <p>Monitor AWS Security in Real Time</p>
 
             </div>
-
 
             <div class="profile">
 
@@ -212,251 +143,418 @@
         </header>
 
 
-        <!-- ================= SECURITY CARDS ================= -->
+        <!-- FLASH MESSAGES -->
 
-        <!-- ================= SECURITY CARDS ================= -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
 
-<section class="cards">
+            {% if messages %}
 
+                <div class="flash-messages">
 
-    <!-- ================= SECURITY SCORE ================= -->
+                    {% for category, message in messages %}
 
-    <div class="card score">
+                        <div class="flash-message {{ category }}">
+                            {{ message }}
+                        </div>
 
-        <h3>
-            Security Score
-        </h3>
+                    {% endfor %}
 
-        <h1>
-            {{ security_score }}%
-        </h1>
-
-        <p>
-            Security Score
-        </p>
-
-    </div>
-
-
-    <!-- ================= IAM ================= -->
-
-    <div class="card iam">
-
-        <h3>
-            IAM
-        </h3>
-
-        {% if iam_findings %}
-
-            <h2>
-                {{ iam_findings|length }} Issues
-            </h2>
-
-            <span class="yellow">
-                ● Warning
-            </span>
-
-        {% else %}
-
-            <h2>
-                Secure
-            </h2>
-
-            <span class="green">
-                ● Healthy
-            </span>
-
-        {% endif %}
-
-    </div>
-
-
-    <!-- ================= EC2 ================= -->
-
-    <div class="card ec2">
-    <h3>EC2</h3>
-
-    {% if ec2_findings %}
-        <h2>{{ ec2_findings|length }} Issues</h2>
-        <span class="red">● High Risk</span>
-    {% else %}
-        <h2>Secure</h2>
-        <span class="green">● Healthy</span>
-    {% endif %}
-   </div>
-
-
-    <!-- ================= S3 ================= -->
-
-    <div class="card s3">
-
-        <h3>
-            S3
-        </h3>
-
-        <h2>
-            Critical
-        </h2>
-
-        <span class="red">
-            ● Public Bucket
-        </span>
-
-    </div>
-
-
-    <!-- ================= VPC ================= -->
-
-    <div class="card vpc">
-
-        <h3>
-            VPC
-        </h3>
-
-        <h2>
-            Secure
-        </h2>
-
-        <span class="green">
-            ● Healthy
-        </span>
-
-    </div>
-
-
-</section>
-
-
-<!-- ================= RECENT FINDINGS ================= -->
-
-<section class="table-section">
-
-    <h2>
-        Recent Findings
-    </h2>
-
-
-    <table>
-
-        <thead>
-
-            <tr>
-
-                <th>
-                    Severity
-                </th>
-
-                <th>
-                    Service
-                </th>
-
-                <th>
-                    Description
-                </th>
-
-                <th>
-                    Status
-                </th>
-
-            </tr>
-
-        </thead>
-
-
-        <tbody>
-
-            {% if findings %}
-
-                {% for finding in findings %}
-
-                <tr>
-
-                    <td class="{{ finding.severity|lower }}">
-
-                        {{ finding.severity }}
-
-                    </td>
-
-
-                    <td>
-
-                        {{ finding.service }}
-
-                    </td>
-
-
-                    <td>
-
-                        {{ finding.issue }}
-
-                        <br>
-
-                        <small>
-                           {% if finding.instance_id %}
-                                Instance: {{ finding.instance_id }}
-                                <br>
-                                 Security Group: {{ finding.security_group_id }}
-                            {% elif finding.user %}
-                                 User: {{ finding.user }}
-                            {% endif %}
-                        </small>
-
-                    </td>
-
-
-                    <td>
-                        Open
-                    </td>
-
-                </tr>
-
-                {% endfor %}
-
-            {% else %}
-
-                <tr>
-
-                    <td colspan="4">
-
-                        ✅ No security findings detected
-
-                    </td>
-
-                </tr>
+                </div>
 
             {% endif %}
 
-        </tbody>
-
-    </table>
-
-</section>
+        {% endwith %}
 
 
-<!-- ================= SCAN BUTTON ================= -->
+        <!-- ==================================================
+             SECURITY CARDS
+        ================================================== -->
 
-<div class="scan">
-
-    <a href="{{ url_for('scan') }}">
-
-        <button type="button">
-
-            <i class="fa-solid fa-magnifying-glass"></i>
-
-            Scan AWS Infrastructure
-
-        </button>
-
-    </a>
-
-</div>
+        <section class="cards">
 
 
-        
+            <!-- SECURITY SCORE -->
+
+            <div class="card score">
+
+                <h3>Security Score</h3>
+
+                    {% if scan_completed %}
+
+                <h1>{{ security_score }}%</h1>
+
+                    <p>Calculated from AWS security findings</p>
+
+                    {% else %}
+
+                <h1>--</h1>
+
+                    <p>Run a scan to calculate score</p>
+
+                    {% endif %}
+
+            </div>
+
+
+            <!-- ==================================================
+                 IAM
+            ================================================== -->
+
+            <div class="card iam">
+
+                <h3>IAM</h3>
+
+                {% if 'IAM' not in selected_services %}
+
+                    <h2>Not Selected</h2>
+
+                    <span>● Disabled in Settings</span>
+
+                {% elif service_status['IAM'] == 'SCAN_FAILED' %}
+
+                    <h2>Scan Failed</h2>
+
+                    <span class="red">● Scanner Error</span>
+
+                {% elif service_status['IAM'] == 'ISSUES' %}
+
+                    <h2>{{ service_findings['IAM']|length }} Issues</h2>
+
+                    <span class="red">● Attention Required</span>
+
+                {% elif service_status['IAM'] == 'HEALTHY' %}
+
+                    <h2>Secure</h2>
+
+                    <span class="green">● Healthy</span>
+
+                {% else %}
+
+                    <h2>Not Scanned</h2>
+
+                    <span class="yellow">● Waiting for Scan</span>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- ==================================================
+                 EC2
+            ================================================== -->
+
+            <div class="card ec2">
+
+                <h3>EC2</h3>
+
+                {% if 'EC2' not in selected_services %}
+
+                    <h2>Not Selected</h2>
+
+                    <span>● Disabled in Settings</span>
+
+                {% elif service_status['EC2'] == 'SCAN_FAILED' %}
+
+                    <h2>Scan Failed</h2>
+
+                    <span class="red">● Scanner Error</span>
+
+                {% elif service_status['EC2'] == 'ISSUES' %}
+
+                    <h2>{{ service_findings['EC2']|length }} Issues</h2>
+
+                    <span class="red">● Attention Required</span>
+
+                {% elif service_status['EC2'] == 'HEALTHY' %}
+
+                    <h2>Secure</h2>
+
+                    <span class="green">● Healthy</span>
+
+                {% else %}
+
+                    <h2>Not Scanned</h2>
+
+                    <span class="yellow">● Waiting for Scan</span>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- ==================================================
+                 S3
+            ================================================== -->
+
+            <div class="card s3">
+
+                <h3>S3</h3>
+
+                {% if 'S3' not in selected_services %}
+
+                    <h2>Not Selected</h2>
+
+                    <span>● Disabled in Settings</span>
+
+                {% elif service_status['S3'] == 'SCAN_FAILED' %}
+
+                    <h2>Scan Failed</h2>
+
+                    <span class="red">● Scanner Error</span>
+
+                {% elif service_status['S3'] == 'ISSUES' %}
+
+                    <h2>{{ service_findings['S3']|length }} Issues</h2>
+
+                    <span class="red">● Attention Required</span>
+
+                {% elif service_status['S3'] == 'HEALTHY' %}
+
+                    <h2>Secure</h2>
+
+                    <span class="green">● Healthy</span>
+
+                {% else %}
+
+                    <h2>Not Scanned</h2>
+
+                    <span class="yellow">● Waiting for Scan</span>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- ==================================================
+                 VPC
+            ================================================== -->
+
+            <div class="card vpc">
+
+                <h3>VPC</h3>
+
+                {% if 'VPC' not in selected_services %}
+
+                    <h2>Not Selected</h2>
+
+                    <span>● Disabled in Settings</span>
+
+                {% elif service_status['VPC'] == 'SCAN_FAILED' %}
+
+                    <h2>Scan Failed</h2>
+
+                    <span class="red">● Scanner Error</span>
+
+                {% elif service_status['VPC'] == 'ISSUES' %}
+
+                    <h2>{{ service_findings['VPC']|length }} Issues</h2>
+
+                    <span class="red">● Attention Required</span>
+
+                {% elif service_status['VPC'] == 'HEALTHY' %}
+
+                    <h2>Secure</h2>
+
+                    <span class="green">● Healthy</span>
+
+                {% else %}
+
+                    <h2>Not Scanned</h2>
+
+                    <span class="yellow">● Waiting for Scan</span>
+
+                {% endif %}
+
+            </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             SCANNER WARNINGS
+        ================================================== -->
+
+        {% if scan_errors %}
+
+            <section class="table-section">
+
+                <h2>
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Scanner Warnings
+                </h2>
+
+                {% for error in scan_errors %}
+
+                    <p class="red" style="margin-bottom: 10px;">
+                        {{ error }}
+                    </p>
+
+                {% endfor %}
+
+            </section>
+
+        {% endif %}
+
+
+        <!-- ==================================================
+             RECENT FINDINGS
+        ================================================== -->
+
+        <section class="table-section">
+
+            <h2>Recent Findings</h2>
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Severity</th>
+                        <th>Service</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% if findings %}
+
+                        {% for finding in findings %}
+
+                            <tr>
+
+                                <!-- SEVERITY -->
+
+                                <td class="{{ finding.severity|lower }}">
+
+                                    {{ finding.severity }}
+
+                                </td>
+
+
+                                <!-- SERVICE -->
+
+                                <td>
+
+                                    {{ finding.service }}
+
+                                </td>
+
+
+                                <!-- DESCRIPTION -->
+
+                                <td>
+
+                                    {{ finding.issue }}
+
+                                    <br>
+
+                                    <small>
+
+                                        {% if finding.user %}
+
+                                            User: {{ finding.user }}
+
+                                        {% elif finding.instance_id %}
+
+                                            Instance: {{ finding.instance_id }}
+
+                                            {% if finding.security_group_id %}
+                                                <br>
+                                                Security Group:
+                                                {{ finding.security_group_id }}
+                                            {% endif %}
+
+                                        {% elif finding.bucket_name or finding.bucket %}
+
+                                            Bucket:
+                                            {{ finding.bucket_name or finding.bucket }}
+
+                                        {% elif finding.vpc_id %}
+
+                                            VPC: {{ finding.vpc_id }}
+
+                                        {% elif finding.resource %}
+
+                                            Resource: {{ finding.resource }}
+
+                                        {% endif %}
+
+                                    </small>
+
+                                </td>
+
+
+                                <!-- STATUS -->
+
+                                <td>
+
+                                    <span class="red">Open</span>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+
+                            <td colspan="4">
+
+                                {% if scan_completed %}
+
+                                    No security findings detected
+                                    in the successfully scanned services.
+
+                                {% else %}
+
+                                    No scan results available.
+                                    Run a security scan to get started.
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </section>
+
+
+        <!-- ==================================================
+             SCAN BUTTON
+        ================================================== -->
+
+        <div class="scan">
+
+            <a href="{{ url_for('scan') }}">
+
+                <button type="button">
+
+                    <i class="fa-solid fa-magnifying-glass"></i>
+
+                    Scan AWS Infrastructure
+
+                </button>
+
+            </a>
+
+        </div>
+
+
     </main>
 
 </div>
 
 </body>
-
 </html>
